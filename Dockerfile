@@ -1,4 +1,4 @@
-FROM registry.svc.ci.openshift.org/ocp/builder:rhel-8-golang-1.15-openshift-4.7 AS builder
+FROM openshift:rhel-8-golang-1.15 AS builder
 WORKDIR /ingress-operator
 COPY . .
 RUN make build
