@@ -1,4 +1,4 @@
-FROM openshift:rhel-8-golang-1.15 AS builder
+FROM openshift:rhel-8-golang-1.14 AS builder
 WORKDIR /ingress-operator
 COPY . .
 RUN make build
