@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/cluster-ingress-operator/pkg/operator/controller"
 
 	corev1 "k8s.io/api/core/v1"
@@ -14,13 +15,13 @@ import (
 // ensureServiceCAConfigMap ensures the configmap for the service CA bundle
 // exists.  Returns a Boolean indicating whether the configmap exists, the
 // configmap if it does exist, and an error value.
-func (r *reconciler) ensureServiceCAConfigMap() (bool, *corev1.ConfigMap, error) {
-	wantCM, desired, err := desiredServiceCAConfigMap()
+func (r *reconciler) ensureServiceCAConfigMap(ci *operatorv1.IngressController) (bool, *corev1.ConfigMap, error) {
+	wantCM, desired, err := desiredServiceCAConfigMap(ci)
 	if err != nil {
 		return false, nil, fmt.Errorf("failed to build configmap: %v", err)
 	}
 
-	haveCM, current, err := r.currentServiceCAConfigMap()
+	haveCM, current, err := r.currentServiceCAConfigMap(ci)
 	if err != nil {
 		return false, nil, err
 	}
@@ -42,13 +43,13 @@ func (r *reconciler) ensureServiceCAConfigMap() (bool, *corev1.ConfigMap, error)
 			return false, nil, fmt.Errorf("failed to create configmap: %v", err)
 		}
 		log.Info("created configmap", "configmap", desired)
-		return r.currentServiceCAConfigMap()
+		return r.currentServiceCAConfigMap(ci)
 	case wantCM && haveCM:
 		if updated, err := r.updateServiceCAConfigMap(current, desired); err != nil {
 			return true, current, fmt.Errorf("failed to update configmap: %v", err)
 		} else if updated {
 			log.Info("updated configmap", "configmap", desired)
-			return r.currentServiceCAConfigMap()
+			return r.currentServiceCAConfigMap(ci)
 		}
 	}
 
@@ -58,8 +59,8 @@ func (r *reconciler) ensureServiceCAConfigMap() (bool, *corev1.ConfigMap, error)
 // desiredServiceCAConfigMap returns the desired configmap for the service CA
 // bundle.  Returns a Boolean indicating whether a configmap is desired, as well
 // as the configmap if one is desired.
-func desiredServiceCAConfigMap() (bool, *corev1.ConfigMap, error) {
-	name := controller.ServiceCAConfigMapName()
+func desiredServiceCAConfigMap(ci *operatorv1.IngressController) (bool, *corev1.ConfigMap, error) {
+	name := controller.ServiceCAConfigMapName(ci)
 	cm := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
@@ -77,9 +78,9 @@ func desiredServiceCAConfigMap() (bool, *corev1.ConfigMap, error) {
 // currentServiceCAConfigMap returns the current configmap for the service CA
 // bundle.  Returns a Boolean indicating whether the configmap existed, the
 // configmap if it did exist, and an error value.
-func (r *reconciler) currentServiceCAConfigMap() (bool, *corev1.ConfigMap, error) {
+func (r *reconciler) currentServiceCAConfigMap(ci *operatorv1.IngressController) (bool, *corev1.ConfigMap, error) {
 	cm := &corev1.ConfigMap{}
-	if err := r.client.Get(context.TODO(), controller.ServiceCAConfigMapName(), cm); err != nil {
+	if err := r.client.Get(context.TODO(), controller.ServiceCAConfigMapName(ci), cm); err != nil {
 		if errors.IsNotFound(err) {
 			return false, nil, nil
 		}

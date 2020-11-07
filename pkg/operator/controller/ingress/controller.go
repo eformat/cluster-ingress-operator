@@ -617,7 +617,7 @@ func (r *reconciler) ensureIngressController(ci *operatorv1.IngressController, d
 	}
 
 	var errs []error
-	if _, _, err := r.ensureServiceCAConfigMap(); err != nil {
+	if _, _, err := r.ensureServiceCAConfigMap(ci); err != nil {
 		// Even if we were unable to create the configmap at this time,
 		// it is still safe try to create the deployment, as it
 		// specifies that the volume mount is non-optional, meaning the

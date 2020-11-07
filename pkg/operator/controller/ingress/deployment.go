@@ -138,6 +138,7 @@ func HTTP2IsEnabled(ic *operatorv1.IngressController, ingressConfig *configv1.In
 func desiredRouterDeployment(ci *operatorv1.IngressController, ingressControllerImage string, ingressConfig *configv1.Ingress, apiConfig *configv1.APIServer, networkConfig *configv1.Network, proxyNeeded bool) (*appsv1.Deployment, error) {
 	deployment := manifests.RouterDeployment()
 	name := controller.RouterDeploymentName(ci)
+	log.Info(">>> deployment", "namespace", name.Namespace, "name", name)
 	deployment.Name = name.Name
 	deployment.Namespace = name.Namespace
 
@@ -378,14 +379,14 @@ func desiredRouterDeployment(ci *operatorv1.IngressController, ingressController
 	if ci.Status.EndpointPublishingStrategy.Type == operatorv1.HostNetworkStrategyType {
 		// Expose ports 80 and 443 on the host to provide endpoints for
 		// the user's HA solution.
-		deployment.Spec.Template.Spec.HostNetwork = true
+		deployment.Spec.Template.Spec.HostNetwork = false // set to false for container-network testing
 
 		// With container networking, probes default to using the pod IP
 		// address.  With host networking, probes default to using the
 		// node IP address.  Using localhost avoids potential routing
 		// problems or firewall restrictions.
-		deployment.Spec.Template.Spec.Containers[0].LivenessProbe.Handler.HTTPGet.Host = "localhost"
-		deployment.Spec.Template.Spec.Containers[0].ReadinessProbe.Handler.HTTPGet.Host = "localhost"
+		//deployment.Spec.Template.Spec.Containers[0].LivenessProbe.Handler.HTTPGet.Host = "localhost"
+		//deployment.Spec.Template.Spec.Containers[0].ReadinessProbe.Handler.HTTPGet.Host = "localhost"
 	}
 
 	// Fill in the default certificate secret name.
@@ -853,8 +854,8 @@ func hashableDeployment(deployment *appsv1.Deployment, onlyTemplate bool) *appsv
 			Image:           container.Image,
 			ImagePullPolicy: container.ImagePullPolicy,
 			Name:            container.Name,
-			LivenessProbe:   hashableProbe(container.LivenessProbe),
-			ReadinessProbe:  hashableProbe(container.ReadinessProbe),
+			//LivenessProbe:   hashableProbe(container.LivenessProbe),
+			//ReadinessProbe:  hashableProbe(container.ReadinessProbe),
 		}
 	}
 	sort.Slice(containers, func(i, j int) bool {
@@ -1015,8 +1016,8 @@ func deploymentConfigChanged(current, expected *appsv1.Deployment) (bool, *appsv
 	updated.Spec.Template.Spec.NodeSelector = expected.Spec.Template.Spec.NodeSelector
 	updated.Spec.Template.Spec.Containers[0].Env = expected.Spec.Template.Spec.Containers[0].Env
 	updated.Spec.Template.Spec.Containers[0].Image = expected.Spec.Template.Spec.Containers[0].Image
-	updated.Spec.Template.Spec.Containers[0].LivenessProbe = expected.Spec.Template.Spec.Containers[0].LivenessProbe
-	updated.Spec.Template.Spec.Containers[0].ReadinessProbe = expected.Spec.Template.Spec.Containers[0].ReadinessProbe
+	//updated.Spec.Template.Spec.Containers[0].LivenessProbe = expected.Spec.Template.Spec.Containers[0].LivenessProbe
+	//updated.Spec.Template.Spec.Containers[0].ReadinessProbe = expected.Spec.Template.Spec.Containers[0].ReadinessProbe
 	updated.Spec.Template.Spec.Containers[0].VolumeMounts = expected.Spec.Template.Spec.Containers[0].VolumeMounts
 	updated.Spec.Template.Spec.Tolerations = expected.Spec.Template.Spec.Tolerations
 	updated.Spec.Template.Spec.Affinity = expected.Spec.Template.Spec.Affinity

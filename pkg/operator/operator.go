@@ -104,7 +104,7 @@ func New(config operatorconfig.Config, kubeConfig *rest.Config) (*Operator, erro
 	if _, err := certpublishercontroller.New(mgr, config.Namespace, "openshift-ingress"); err != nil {
 		return nil, fmt.Errorf("failed to create certificate-publisher controller: %v", err)
 	}
-
+	
 	// Set up the DNS controller
 	if _, err := dnscontroller.New(mgr, dnscontroller.Config{
 		Namespace:              config.Namespace,

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"regexp"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
@@ -37,10 +38,19 @@ func IngressClusterOperatorName() types.NamespacedName {
 
 // RouterDeploymentName returns the namespaced name for the router deployment.
 func RouterDeploymentName(ci *operatorv1.IngressController) types.NamespacedName {
-	return types.NamespacedName{
-		Namespace: "openshift-ingress",
-		Name:      "router-" + ci.Name,
+	match, _ := regexp.MatchString("default", ci.Name)
+	if (match) {
+		return types.NamespacedName{
+			Namespace: "openshift-ingress",
+			Name:      "router-" + ci.Name,
+		}
+	} else {
+		return types.NamespacedName{
+			Namespace: "router-shard",
+			Name:      "router-" + ci.Name,
+		}
 	}
+
 }
 
 // RouterCASecretName returns the namespaced name for the router CA secret.
@@ -85,18 +95,34 @@ func RouterOperatorGeneratedDefaultCertificateSecretName(ci *operatorv1.IngressC
 
 // RsyslogConfigMapName returns the namespaced name for the rsyslog configmap.
 func RsyslogConfigMapName(ic *operatorv1.IngressController) types.NamespacedName {
-	return types.NamespacedName{
-		Namespace: "openshift-ingress",
-		Name:      "rsyslog-conf-" + ic.Name,
+	match, _ := regexp.MatchString("default", ic.Name)
+	if (match) {
+		return types.NamespacedName{
+			Namespace: "openshift-ingress",
+			Name:      "rsyslog-conf-" + ic.Name,
+		}
+	} else {
+		return types.NamespacedName{
+			Namespace: "router-shard",
+			Name:      "rsyslog-conf-" + ic.Name,
+		}
 	}
 }
 
 // RouterPodDisruptionBudgetName returns the namespaced name for the router
 // deployment's pod disruption budget.
 func RouterPodDisruptionBudgetName(ic *operatorv1.IngressController) types.NamespacedName {
-	return types.NamespacedName{
-		Namespace: "openshift-ingress",
-		Name:      "router-" + ic.Name,
+	match, _ := regexp.MatchString("default", ic.Name)
+	if (match) {
+		return types.NamespacedName{
+			Namespace: "openshift-ingress",
+			Name:      "router-" + ic.Name,
+		}
+	} else {
+		return types.NamespacedName{
+			Namespace: "router-shard",
+			Name:      "router-" + ic.Name,
+		}
 	}
 }
 
@@ -111,10 +137,18 @@ func RouterEffectiveDefaultCertificateSecretName(ci *operatorv1.IngressControlle
 
 // ServiceCAConfigMapName returns the namespaced name for the
 // configmap with the service CA bundle.
-func ServiceCAConfigMapName() types.NamespacedName {
-	return types.NamespacedName{
-		Namespace: "openshift-ingress",
-		Name:      "service-ca-bundle",
+func ServiceCAConfigMapName(ci *operatorv1.IngressController) types.NamespacedName {
+	match, _ := regexp.MatchString("default", ci.Name)
+	if (match) {
+		return types.NamespacedName{
+			Namespace: "openshift-ingress",
+			Name:      "service-ca-bundle",
+		}
+	} else {
+		return types.NamespacedName{
+			Namespace: "router-shard",
+			Name:      "service-ca-bundle",
+		}
 	}
 }
 
@@ -132,13 +166,26 @@ func IngressControllerDeploymentPodSelector(ic *operatorv1.IngressController) *m
 
 func InternalIngressControllerServiceName(ic *operatorv1.IngressController) types.NamespacedName {
 	// TODO: remove hard-coded namespace
-	return types.NamespacedName{Namespace: "openshift-ingress", Name: "router-internal-" + ic.Name}
+	match, _ := regexp.MatchString("default", ic.Name)
+	if (match) {
+		return types.NamespacedName{Namespace: "openshift-ingress", Name: "router-internal-" + ic.Name}
+	} else {
+		return types.NamespacedName{Namespace: "router-shard", Name: "router-internal-" + ic.Name}		
+	}
 }
 
 func IngressControllerServiceMonitorName(ic *operatorv1.IngressController) types.NamespacedName {
-	return types.NamespacedName{
-		Namespace: "openshift-ingress",
-		Name:      "router-" + ic.Name,
+	match, _ := regexp.MatchString("default", ic.Name)
+	if (match) {
+		return types.NamespacedName{
+			Namespace: "openshift-ingress",
+			Name:      "router-" + ic.Name,
+		}
+	} else {
+		return types.NamespacedName{
+			Namespace: "router-shard",
+			Name:      "router-" + ic.Name,
+		}
 	}
 }
 

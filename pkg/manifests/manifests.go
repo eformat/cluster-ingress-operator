@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"regexp"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
@@ -12,7 +13,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apiserver/pkg/storage/names"
 
@@ -102,20 +102,36 @@ func RouterClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 }
 
 func RouterStatsSecret(cr *operatorv1.IngressController) *corev1.Secret {
-	s := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("router-stats-%s", cr.Name),
-			Namespace: "openshift-ingress",
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{},
+	match, _ := regexp.MatchString("default", cr.Name)
+	if (match) {
+		s := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("router-stats-%s", cr.Name),
+				Namespace: "openshift-ingress",
+			},
+			Type: corev1.SecretTypeOpaque,
+			Data: map[string][]byte{},
+		}
+		generatedUser := names.SimpleNameGenerator.GenerateName("user")
+		generatedPassword := names.SimpleNameGenerator.GenerateName("pass")
+		s.Data["statsUsername"] = []byte(base64.StdEncoding.EncodeToString([]byte(generatedUser)))
+		s.Data["statsPassword"] = []byte(base64.StdEncoding.EncodeToString([]byte(generatedPassword)))
+		return s
+	} else {
+		s := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("router-stats-%s", cr.Name),
+				Namespace: "router-shard",
+			},
+			Type: corev1.SecretTypeOpaque,
+			Data: map[string][]byte{},
+		}
+		generatedUser := names.SimpleNameGenerator.GenerateName("user")
+		generatedPassword := names.SimpleNameGenerator.GenerateName("pass")
+		s.Data["statsUsername"] = []byte(base64.StdEncoding.EncodeToString([]byte(generatedUser)))
+		s.Data["statsPassword"] = []byte(base64.StdEncoding.EncodeToString([]byte(generatedPassword)))
+		return s
 	}
-
-	generatedUser := names.SimpleNameGenerator.GenerateName("user")
-	generatedPassword := names.SimpleNameGenerator.GenerateName("pass")
-	s.Data["statsUsername"] = []byte(base64.StdEncoding.EncodeToString([]byte(generatedUser)))
-	s.Data["statsPassword"] = []byte(base64.StdEncoding.EncodeToString([]byte(generatedPassword)))
-	return s
 }
 
 func RouterDeployment() *appsv1.Deployment {

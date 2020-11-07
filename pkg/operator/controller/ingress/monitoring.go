@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"regexp"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/cluster-ingress-operator/pkg/manifests"
@@ -51,55 +52,110 @@ func (r *reconciler) ensureServiceMonitor(ic *operatorv1.IngressController, svc 
 // ingresscontroller and service.
 func desiredServiceMonitor(ic *operatorv1.IngressController, svc *corev1.Service, deploymentRef metav1.OwnerReference) *unstructured.Unstructured {
 	name := controller.IngressControllerServiceMonitorName(ic)
-	sm := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"namespace": name.Namespace,
-				"name":      name.Name,
-			},
-			"spec": map[string]interface{}{
-				"namespaceSelector": map[string]interface{}{
-					"matchNames": []interface{}{
-						"openshift-ingress",
-					},
+
+	match, _ := regexp.MatchString("default", ic.Name)
+	if (match) {
+		sm := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"namespace": name.Namespace,
+					"name":      name.Name,
 				},
-				"selector": map[string]interface{}{
-					"matchLabels": map[string]interface{}{
-						manifests.OwningIngressControllerLabel: ic.Name,
+				"spec": map[string]interface{}{
+					"namespaceSelector": map[string]interface{}{
+						"matchNames": []interface{}{
+							"openshift-ingress",
+						},
 					},
-				},
-				// It is important to use the type []interface{}
-				// for the "endpoints" field.  Using
-				// []map[string]interface{} causes at least two
-				// problems: first, DeepCopy will fail with
-				// "cannot deep copy []map[string]interface {}";
-				// second, the API returns an object that uses
-				// type []interface{} for this field, so
-				// DeepEqual against an API object will always
-				// return false.
-				"endpoints": []interface{}{
-					map[string]interface{}{
-						"bearerTokenFile": "/var/run/secrets/kubernetes.io/serviceaccount/token",
-						"interval":        "30s",
-						"port":            "metrics",
-						"scheme":          "https",
-						"path":            "/metrics",
-						"tlsConfig": map[string]interface{}{
-							"caFile":     "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
-							"serverName": fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace),
+					"selector": map[string]interface{}{
+						"matchLabels": map[string]interface{}{
+							manifests.OwningIngressControllerLabel: ic.Name,
+						},
+					},
+					// It is important to use the type []interface{}
+					// for the "endpoints" field.  Using
+					// []map[string]interface{} causes at least two
+					// problems: first, DeepCopy will fail with
+					// "cannot deep copy []map[string]interface {}";
+					// second, the API returns an object that uses
+					// type []interface{} for this field, so
+					// DeepEqual against an API object will always
+					// return false.
+					"endpoints": []interface{}{
+						map[string]interface{}{
+							"bearerTokenFile": "/var/run/secrets/kubernetes.io/serviceaccount/token",
+							"interval":        "30s",
+							"port":            "metrics",
+							"scheme":          "https",
+							"path":            "/metrics",
+							"tlsConfig": map[string]interface{}{
+								"caFile":     "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
+								"serverName": fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace),
+							},
 						},
 					},
 				},
 			},
-		},
+		}
+		sm.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   "monitoring.coreos.com",
+			Kind:    "ServiceMonitor",
+			Version: "v1",
+		})
+		sm.SetOwnerReferences([]metav1.OwnerReference{deploymentRef})
+		return sm
+	} else {
+		sm := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"namespace": name.Namespace,
+					"name":      name.Name,
+				},
+				"spec": map[string]interface{}{
+					"namespaceSelector": map[string]interface{}{
+						"matchNames": []interface{}{
+							"router-shard",
+						},
+					},
+					"selector": map[string]interface{}{
+						"matchLabels": map[string]interface{}{
+							manifests.OwningIngressControllerLabel: ic.Name,
+						},
+					},
+					// It is important to use the type []interface{}
+					// for the "endpoints" field.  Using
+					// []map[string]interface{} causes at least two
+					// problems: first, DeepCopy will fail with
+					// "cannot deep copy []map[string]interface {}";
+					// second, the API returns an object that uses
+					// type []interface{} for this field, so
+					// DeepEqual against an API object will always
+					// return false.
+					"endpoints": []interface{}{
+						map[string]interface{}{
+							"bearerTokenFile": "/var/run/secrets/kubernetes.io/serviceaccount/token",
+							"interval":        "30s",
+							"port":            "metrics",
+							"scheme":          "https",
+							"path":            "/metrics",
+							"tlsConfig": map[string]interface{}{
+								"caFile":     "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
+								"serverName": fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace),
+							},
+						},
+					},
+				},
+			},
+		}
+		sm.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   "monitoring.coreos.com",
+			Kind:    "ServiceMonitor",
+			Version: "v1",
+		})
+		sm.SetOwnerReferences([]metav1.OwnerReference{deploymentRef})
+		return sm
 	}
-	sm.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "monitoring.coreos.com",
-		Kind:    "ServiceMonitor",
-		Version: "v1",
-	})
-	sm.SetOwnerReferences([]metav1.OwnerReference{deploymentRef})
-	return sm
+
 }
 
 // currentServiceMonitor returns the current servicemonitor.  Returns a Boolean

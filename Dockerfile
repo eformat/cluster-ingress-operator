@@ -4,7 +4,8 @@ WORKDIR /ingress-operator
 COPY . .
 RUN make build
 
-FROM registry.svc.ci.openshift.org/ocp/4.7:base
+#FROM registry.svc.ci.openshift.org/ocp/4.7:base
+FROM quay.io/openshift/origin-base:4.7
 COPY --from=builder /ingress-operator/ingress-operator /usr/bin/
 COPY manifests /manifests
 ENTRYPOINT ["/usr/bin/ingress-operator"]

@@ -116,6 +116,8 @@ func (r *reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	}
 
 	wildcardServingCertKeySecret := &corev1.Secret{}
+
+	
 	if err := r.client.Get(context.TODO(), controller.RouterEffectiveDefaultCertificateSecretName(ingress, "openshift-ingress"), wildcardServingCertKeySecret); err != nil {
 		errs = append(errs, fmt.Errorf("failed to lookup wildcard cert: %v", err))
 		return result, utilerrors.NewAggregate(errs)
